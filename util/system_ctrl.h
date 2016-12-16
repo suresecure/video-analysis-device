@@ -11,12 +11,15 @@ public:
                             const std::string &default_gateway,
                             const std::string &dns);
   static int GetNetworkConf(int idx, std::string &ipaddr, std::string &netmask,
-                            std::string default_gateway, std::string &dns);
+                            std::string &default_gateway, std::string &dns);
 
   // static int SetLocalSystemtime(time_t* t);
   // static int GetLocalSystemtime(const time_t* t);
   static int GetUTCSystemTime(time_t *t);
   static int SetUTCSystemTime(const time_t *t);
+
+  static int GetNtpServerAddress(std::string &ntp_server_addr);
+  static int SetNtpServerAddress(const std::string ntp_server_addr);
 
   static int RebootSystem();
 };
