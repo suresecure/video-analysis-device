@@ -14,11 +14,10 @@ int main() {
     std::cout << "watchdog" << std::endl;
     return -1;
   }
-  std::cout << "before get\n";
-  std::cout << "Watchdog timeout is: " << SystemCtrl::GetWatchdogTimeout(fd);
-  std::cout << "after get\n";
+  std::cout << "Watchdog timeout is: " << SystemCtrl::GetWatchdogTimeout(fd)
+            << std::endl;
   for (int i = 0; i < 5; ++i) {
-    std::cout << "Pat dog\n";
+    std::cout << "Pat dog: " << i << "\n";
     SystemCtrl::PatWatchdog(fd);
     sleep(10);
   }

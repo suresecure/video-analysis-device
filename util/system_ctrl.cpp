@@ -52,10 +52,11 @@ int SystemCtrl::SetNetworkConf(int idx, const std::string &ipaddr,
   interfaces << "    address " << ipaddr << "\n";
   interfaces << "    netmask " << netmask << "\n";
   interfaces << "    gateway " << default_gateway << "\n";
+  interfaces << "    dns-nameservers " << dns << "\n";
   interfaces.close();
-  std::ofstream resolv_conf("tmpcfgfiles/resolv.conf");
-  resolv_conf << "nameserver " << dns << "\n";
-  resolv_conf.close();
+  //std::ofstream resolv_conf("tmpcfgfiles/resolv.conf");
+  //resolv_conf << "nameserver " << dns << "\n";
+  //resolv_conf.close();
   return 0;
 }
 int SystemCtrl::GetNetworkConf(int idx, std::string &ipaddr,
@@ -73,17 +74,20 @@ int SystemCtrl::GetNetworkConf(int idx, std::string &ipaddr,
     } else if (word == "gateway") {
       interfaces >> word;
       default_gateway = word;
-    }
-  }
-  interfaces.close();
-  std::ifstream resolv_conf("cfgfiles/resolv.conf");
-  while (resolv_conf >> word) {
-    if (word == "nameserver") {
-      resolv_conf >> word;
+    } else if (word == "dns-nameservers") {
+      interfaces >> word;
       dns = word;
     }
   }
-  resolv_conf.close();
+  interfaces.close();
+  //std::ifstream resolv_conf("cfgfiles/resolv.conf");
+  //while (resolv_conf >> word) {
+    //if (word == "nameserver") {
+      //resolv_conf >> word;
+      //dns = word;
+    //}
+  //}
+  //resolv_conf.close();
   return 0;
 }
 
