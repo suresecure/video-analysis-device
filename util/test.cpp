@@ -11,6 +11,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
+#include <linux/watchdog.h>
 int main() {
 
   int fd = open("/dev/watchdog", O_WRONLY);
@@ -24,6 +25,7 @@ int main() {
   //printf("The timeout was set to %d seconds\n", timeout);
   ioctl(fd, WDIOC_GETTIMEOUT, &timeout);
   printf("The timeout was is %d seconds\n", timeout);
+  write(fd, "V", 1);
   //while (1) {
     //ret = write(fd, "\0", 1);
     //if (ret != 1) {
