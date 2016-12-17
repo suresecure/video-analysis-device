@@ -3,8 +3,11 @@
 #include <fstream>
 
 #include <unistd.h>
+#include <fcntl.h>
 #include <arpa/inet.h>
 #include <sys/reboot.h>
+#include <sys/ioctl.h>
+#include <linux/watchdog.h>
 
 #include "system_ctrl.h"
 namespace video_analysis_device {
@@ -30,7 +33,7 @@ static bool ValidNetmask(const std::string &netmask) {
   uint32_t y = prefix_length;
   y = ~htonl(y);
   uint32_t z = y + 1;
-  std::cout<<std::hex<<prefix_length << "\t"<<y<<"\t"<<z<<std::endl;
+  std::cout << std::hex << prefix_length << "\t" << y << "\t" << z << std::endl;
   return (z & y) == 0;
 }
 int SystemCtrl::SetNetworkConf(int idx, const std::string &ipaddr,
@@ -101,4 +104,23 @@ int SystemCtrl::RebootSystem() {
   sync();
   reboot(RB_AUTOBOOT);
 }
+
+int SystemCtrl::OpenWatchdog() { return open("/dev/watchdog", O_WRONLY); }
+int SystemCtrl::GetWatchdogTimeout(int fd) {
+  int timeout;
+  ioctl(fd, WDIOC_GETTIMEOUT, &timeout);
+  return timeout;
+}
+int SystemCtrl::SetWatchdogTimeout(int fd, int timeout) {
+  return ioctl(fd, WDIOC_SETTIMEOUT, &timeout);
+}
+int SystemCtrl::PatWatchdog(int fd) {
+  write(fd, "p", 1);
+  return 0;
+}
+int SystemCtrl::DisableWatchdog(int fd) {
+  write(fd, "V", 1);
+  return 0;
+}
+int SystemCtrl::CloseWatchdog(int fd) { return close(fd); }
 }

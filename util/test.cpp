@@ -1,41 +1,27 @@
-//#include <iostream>
+#include <iostream>
 
-//#include <errno.h>
-//#include <arpa/inet.h>
-
-//#include "system_ctrl.h"
-//using namespace video_analysis_device;
-
-#include <stdio.h>
-#include <stdlib.h>
+#include <errno.h>
+#include <arpa/inet.h>
 #include <unistd.h>
 #include <fcntl.h>
-#include <sys/ioctl.h>
-#include <linux/watchdog.h>
-int main() {
 
-  int fd = open("/dev/watchdog", O_WRONLY);
-  int ret = 0;
+#include "system_ctrl.h"
+using namespace video_analysis_device;
+
+int main() {
+  int fd = SystemCtrl::OpenWatchdog();
   if (fd == -1) {
-    perror("watchdog");
-    exit(EXIT_FAILURE);
+    std::cout<<"watchdog"<<std::endl;
+    return -1;
   }
-  int timeout = 45;
-  //ioctl(fd, WDIOC_SETTIMEOUT, &timeout);
-  //printf("The timeout was set to %d seconds\n", timeout);
-  ioctl(fd, WDIOC_GETTIMEOUT, &timeout);
-  printf("The timeout was is %d seconds\n", timeout);
-  write(fd, "V", 1);
-  //while (1) {
-    //ret = write(fd, "\0", 1);
-    //if (ret != 1) {
-      //ret = -1;
-      //break;
-    //}
-    //sleep(10);
-  //}
-  close(fd);
-  return ret;
+  std::cout<<"Watchdog timeout is: "<<SystemCtrl::GetWatchdogTimeout(fd);
+  while (20) {
+    SystemCtrl::PatWatchdog(fd);
+    sleep(10);
+  }
+  SystemCtrl::DisableWatchdog(fd);
+  SystemCtrl::CloseWatchdog(fd);
+  return 0;
   // std::cout<< ValidNetmask("255.0.0.0")<<std::endl;
   // time_t t;
   // SystemCtrl::GetUTCSystemTime(&t);

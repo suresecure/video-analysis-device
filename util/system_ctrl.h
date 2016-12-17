@@ -22,6 +22,13 @@ public:
   static int SetNtpServerAddress(const std::string ntp_server_addr);
 
   static int RebootSystem();
+
+  static int OpenWatchdog();
+  static int GetWatchdogTimeout(int fd);
+  static int SetWatchdogTimeout(int fd, int timeout);
+  static int PatWatchdog(int fd);
+  static int DisableWatchdog(int fd);
+  static int CloseWatchdog(int fd);
 };
 }
 
