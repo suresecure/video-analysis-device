@@ -17,10 +17,11 @@ int main() {
   std::cout<<"before get\n";
   std::cout<<"Watchdog timeout is: "<<SystemCtrl::GetWatchdogTimeout(fd);
   std::cout<<"after get\n";
-  //while (20) {
-    //SystemCtrl::PatWatchdog(fd);
-    //sleep(10);
-  //}
+  while (5) {
+    std::cout<<"Pat dog\n";
+    SystemCtrl::PatWatchdog(fd);
+    sleep(10);
+  }
   std::cout<<"Disable watchdog\n";
   SystemCtrl::DisableWatchdog(fd);
   SystemCtrl::CloseWatchdog(fd);
