@@ -11,18 +11,18 @@ using namespace video_analysis_device;
 int main() {
   int fd = SystemCtrl::OpenWatchdog();
   if (fd == -1) {
-    std::cout<<"watchdog"<<std::endl;
+    std::cout << "watchdog" << std::endl;
     return -1;
   }
-  std::cout<<"before get\n";
-  std::cout<<"Watchdog timeout is: "<<SystemCtrl::GetWatchdogTimeout(fd);
-  std::cout<<"after get\n";
-  while (5) {
-    std::cout<<"Pat dog\n";
+  std::cout << "before get\n";
+  std::cout << "Watchdog timeout is: " << SystemCtrl::GetWatchdogTimeout(fd);
+  std::cout << "after get\n";
+  for (int i = 0; i < 5; ++i) {
+    std::cout << "Pat dog\n";
     SystemCtrl::PatWatchdog(fd);
     sleep(10);
   }
-  std::cout<<"Disable watchdog\n";
+  std::cout << "Disable watchdog\n";
   SystemCtrl::DisableWatchdog(fd);
   SystemCtrl::CloseWatchdog(fd);
   return 0;
