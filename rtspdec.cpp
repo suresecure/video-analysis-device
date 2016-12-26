@@ -113,10 +113,11 @@ void *GstreamerThread(void *pThreadParam) {
   //"rtph264depay ! h264parse ! avdec_h264 ! video/x-raw, format=RGB ! appsink "
   //"name=mysink",
   // NULL);
-  pipeline = gst_parse_launch("filesrc name=myfilesrc location=/home/mythxcq/test.mp4 ! "
-                              "qtdemux name=myqtdemux ! avdec_h264 name=myavdec_h264 ! "
-                              " appsink name=mysink",
-                              NULL);
+  pipeline = gst_parse_launch(
+      "filesrc name=myfilesrc location=/home/mythxcq/test.mp4 ! "
+      "qtdemux name=myqtdemux ! avdec_h264 name=myavdec_h264 ! "
+      " appsink name=mysink",
+      NULL);
   // gst_parse_launch("filesrc location=/home/mythxcq/test.mp4 ! qtdemux !
   // h264parse ! avdec_h264 ! "
   //"video/x-raw,format=RGB ! appsink name=mysink",
@@ -282,19 +283,15 @@ bool StartGstreamer() {
 // ret = gst_app_src_push_buffer(GST_APP_SRC(appsrc), buffer);
 //}
 //
-static void
-cb_new_pad (GstElement *element,
-            GstPad     *pad,
-            gpointer    data)
-{
-    gchar *name;
+static void cb_new_pad(GstElement *element, GstPad *pad, gpointer data) {
+  gchar *name;
 
-    name = gst_pad_get_name (pad);
-    if (strcmp (name, "video_0") == 0 &&
-        !gst_element_link_pads(qtdemux, name, avdec_h264, "sink")) {
-        printf("link demux-decoder fail\n");
-    }
-    g_free (name);
+  name = gst_pad_get_name(pad);
+  if (strcmp(name, "video_0") == 0 &&
+      !gst_element_link_pads(qtdemux, name, avdec_h264, "sink")) {
+    printf("link demux-decoder fail\n");
+  }
+  g_free(name);
 }
 
 // Reads compressed jpeg frame. Will block if there is nothing to read out.
@@ -344,44 +341,53 @@ char *PullBuffer(int *outlen) {
 int main(int argc, char *argv[]) {
   gst_init(NULL, NULL); // Will abort if GStreamer init error found
   GstBus *bus;
+  // pipeline = gst_parse_launch(
+  //"filesrc name=myfilesrc location=/home/mythxcq/test_cif.mp4 ! "
+  //"qtdemux name=myqtdemux ! avdec_h264 name=myavdec_h264 ! appsink
+  //name=mysink",
+  // NULL);
   //pipeline = gst_parse_launch(
       //"filesrc name=myfilesrc location=/home/mythxcq/test_cif.mp4 ! "
-      //"qtdemux name=myqtdemux ! avdec_h264 name=myavdec_h264 ! appsink name=mysink",
+      //"qtdemux name=myqtdemux ! avdec_h264 ! videoconvert ! ximagesink ",
       //NULL);
-  pipeline = gst_parse_launch(
-  "filesrc name=myfilesrc location=/home/mythxcq/test_cif.mp4 ! "
-  "qtdemux name=myqtdemux ! avdec_h264 ! videoconvert ! ximagesink ",
-  NULL);
-  //pipeline = gst_parse_launch("rtspsrc location=rtsp://localhost:8554/live !  "
+  // pipeline = gst_parse_launch("rtspsrc location=rtsp://localhost:8554/live !
+  // "
   //"rtph264depay ! avdec_h264 ! appsink max-buffers=2 drop=true name=mysink",
-  //NULL);
-  //pipeline = gst_parse_launch("rtspsrc location=rtsp://localhost:8554/live !  "
+  // NULL);
+  // pipeline = gst_parse_launch("rtspsrc location=rtsp://localhost:8554/live !
+  // "
   //"rtph264depay ! avdec_h264 ! appsink max-buffers=2 drop=true name=mysink",
-  //NULL);
+  // NULL);
   // pipeline = gst_parse_launch("filesrc location=/home/mythxcq/test.mp4 ! "
   //"qtdemux ! avdec_h264 ! videoconvert ! "
   //"video/x-raw,format=BGR ! appsink name=mysink",
   // NULL);
-  appsink = gst_bin_get_by_name(GST_BIN(pipeline), "mysink");
-  filesrc = gst_bin_get_by_name(GST_BIN(pipeline), "myfilesrc");
-  qtdemux = gst_bin_get_by_name(GST_BIN(pipeline), "myqtdemux");
-  avdec_h264 = gst_bin_get_by_name(GST_BIN(pipeline), "myavdec_h264");
+  // appsink = gst_bin_get_by_name(GST_BIN(pipeline), "mysink");
+  // filesrc = gst_bin_get_by_name(GST_BIN(pipeline), "myfilesrc");
+  // qtdemux = gst_bin_get_by_name(GST_BIN(pipeline), "myqtdemux");
+  // avdec_h264 = gst_bin_get_by_name(GST_BIN(pipeline), "myavdec_h264");
+  pipeline = gst_pipeline_new("mypipeline");
 
   filesrc = gst_element_factory_make("filesrc", "myfilesrc");
   appsink = gst_element_factory_make("appsink", "myappsink");
   qtdemux = gst_element_factory_make("qtdemux", "myqtdemux");
   avdec_h264 = gst_element_factory_make("avdec_h264", "myavdec_h264");
 
+  gst_element_link(filesrc, qtdemux);
+  gst_element_link(avdec_h264, appsink);
+
+  gst_bin_add_many(GST_BIN(pipeline), filesrc, qtdemux, avdec_h264, appsink,
+                   NULL);
+
   // add a message handler
   bus = gst_pipeline_get_bus(GST_PIPELINE(pipeline));
   // bus_watch_id = gst_bus_add_watch(bus, bus_call, loop);
   // gst_object_unref(bus);
+  g_signal_connect(qtdemux, "pad-added", G_CALLBACK(cb_new_pad), NULL);
 
   fprintf(stderr, "Setting g_main_loop_run to GST_STATE_PLAYING\n");
   // Start pipeline so it could process incoming data
   gst_element_set_state(pipeline, GST_STATE_PLAYING);
-
-  g_signal_connect (qtdemux, "pad-added", G_CALLBACK (cb_new_pad), NULL);
 
   // Stop pipeline to be released
   // gst_element_set_state(pipeline, GST_STATE_NULL);
@@ -446,41 +452,40 @@ int main(int argc, char *argv[]) {
     // PushBuffer(i + prefilled);
 
     // Pull compressed buffer from gstreamer
-    //g_print("\n\n\n");
-    //GstMessage *msg;
-    //while ((msg = gst_bus_pop(bus))) {
-      //// Call your bus message handler
-      //bus_call(bus, msg, NULL);
-      //gst_message_unref(msg);
+    // g_print("\n\n\n");
+    // GstMessage *msg;
+    // while ((msg = gst_bus_pop(bus))) {
+    //// Call your bus message handler
+    // bus_call(bus, msg, NULL);
+    // gst_message_unref(msg);
     //}
 
-    if(appsink != NULL){
+    if (appsink != NULL) {
       int len;
       char *buf = PullBuffer(&len);
-    }
-    else
+    } else
       usleep(30000);
 
     if (i == 10) {
-      gst_element_set_state(pipeline, GST_STATE_READY);
+      //gst_element_set_state(pipeline, GST_STATE_READY);
       // gst_element_set_state(pipeline, GST_STATE_PAUSED);
-      //GstState state = GST_STATE_PLAYING;
-      //while (state != GST_STATE_READY) {
-      //g_print("Get state!\n");
-      //gst_element_get_state(pipeline, &state, NULL, GST_CLOCK_TIME_NONE);
-      //g_print("State got: %d\n", state);
+      // GstState state = GST_STATE_PLAYING;
+      // while (state != GST_STATE_READY) {
+      // g_print("Get state!\n");
+      // gst_element_get_state(pipeline, &state, NULL, GST_CLOCK_TIME_NONE);
+      // g_print("State got: %d\n", state);
       //}
-      //g_print("after state changed!\n");
-      //g_object_set(G_OBJECT(filesrc), "location",
+      // g_print("after state changed!\n");
+      // g_object_set(G_OBJECT(filesrc), "location",
       //"/home/mythxcq/test_d1.mp4",
-      //NULL);
-      //g_print("READY!\n");
-      //gst_element_link(qtdemux, avdec_h264);
-      gst_element_set_state(pipeline, GST_STATE_PLAYING);
-      //while (state != GST_STATE_PLAYING) {
-      //g_print("Get state!\n");
-      //gst_element_get_state(pipeline, &state, NULL, GST_CLOCK_TIME_NONE);
-      //g_print("State got: %d\n", state);
+      // NULL);
+      // g_print("READY!\n");
+      // gst_element_link(qtdemux, avdec_h264);
+      //gst_element_set_state(pipeline, GST_STATE_PLAYING);
+      // while (state != GST_STATE_PLAYING) {
+      // g_print("Get state!\n");
+      // gst_element_get_state(pipeline, &state, NULL, GST_CLOCK_TIME_NONE);
+      // g_print("State got: %d\n", state);
       //}
     }
     // fwrite(buf, 1, len, of);
