@@ -293,7 +293,9 @@ void RtspDec::GetNextSample(cv::Mat &img, bool &first_frame) {
 using namespace srzn_video_analysis_device;
 int main(int argc, char *argv[]) {
   RtspDec rtsp_dec;
-  rtsp_dec.SetRtspSrcUri("rtsp://localhost:8554/live");
+  //rtsp_dec.SetRtspSrcUri("rtsp://localhost:8554/live");
+  g_print("Play %s\n", argv[1]);
+  rtsp_dec.SetRtspSrcUri(argv[1]);
 
   for (int i = 0;; ++i) {
     cv::Mat img;
