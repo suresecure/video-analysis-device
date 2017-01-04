@@ -97,7 +97,9 @@ int RtspDec::WaitForNewSampleBuffer() {
 
 static GstFlowReturn appsink_new_sample(GstAppSink *appsink,
                                         gpointer user_data) {
-  // g_print("new sample thread: %lx\n", pthread_self());
+  g_print("new sample thread: %lx\n", pthread_self());
+  return GST_FLOW_OK;
+
   GstSample *sample = gst_app_sink_pull_sample(GST_APP_SINK(appsink));
   GstCaps *caps = gst_sample_get_caps(sample);
   GstStructure *capsStruct = gst_caps_get_structure(caps, 0);
@@ -234,29 +236,35 @@ RtspDec::RtspDec() {
   rtspsrc = gst_element_factory_make("rtspsrc", "myrtspsrc");
   rtph264depay = gst_element_factory_make("rtph264depay", "myrtph264depay");
   appsink = gst_element_factory_make("appsink", "myappsink");
-  avdec_h264 = gst_element_factory_make("avdec_h264", "myavdec_h264");
   h264parse = gst_element_factory_make("h264parse", "myh264parse");
+#ifdef USE_OMX
   omxh264dec = gst_element_factory_make("omxh264dec", "myomxh264dec");
+#else
+  avdec_h264 = gst_element_factory_make("avdec_h264", "myavdec_h264");
+#endif
 
+  g_object_set(G_OBJECT(appsink), "drop", true, NULL);
+  g_object_set(G_OBJECT(appsink), "max-buffers", 4, NULL);
   g_object_set(G_OBJECT(appsink), "emit-signals", true, NULL);
 
-  if (omxh264dec == NULL)
-    gst_bin_add_many(GST_BIN(pipeline), rtspsrc, rtph264depay, avdec_h264,
-                     h264parse, appsink, NULL);
-  else
-    gst_bin_add_many(GST_BIN(pipeline), rtspsrc, rtph264depay, omxh264dec,
-                     h264parse, appsink, NULL);
+#ifdef USE_OMX
+  gst_bin_add_many(GST_BIN(pipeline), rtspsrc, rtph264depay, omxh264dec,
+                   h264parse, appsink, NULL);
+#else
+  gst_bin_add_many(GST_BIN(pipeline), rtspsrc, rtph264depay, avdec_h264,
+                   h264parse, appsink, NULL);
+#endif
 
   gst_element_link(rtspsrc, rtph264depay);
   gst_element_link(rtph264depay, h264parse);
 
-  if (omxh264dec == NULL) {
-    gst_element_link(h264parse, avdec_h264);
-    gst_element_link(avdec_h264, appsink);
-  } else {
-    gst_element_link(h264parse, omxh264dec);
-    gst_element_link(omxh264dec, appsink);
-  }
+#ifdef USE_OMX
+  gst_element_link(h264parse, omxh264dec);
+  gst_element_link(omxh264dec, appsink);
+#else
+  gst_element_link(h264parse, avdec_h264);
+  gst_element_link(avdec_h264, appsink);
+#endif
 
   // add a message handler
   // bus = gst_pipeline_get_bus(GST_PIPELINE(pipeline));
@@ -306,9 +314,10 @@ void RtspDec::GetNextSample(cv::Mat &img, bool &first_frame) {
 using namespace srzn_video_analysis_device;
 int main(int argc, char *argv[]) {
   RtspDec rtsp_dec;
-  // rtsp_dec.SetRtspSrcUri("rtsp://localhost:8554/live");
   g_print("Play %s\n", argv[1]);
   rtsp_dec.SetRtspSrcUri(argv[1]);
+  sleep(10);
+  return 0;
 
   int frames = 0;
   for (int i = 0;; ++i) {
