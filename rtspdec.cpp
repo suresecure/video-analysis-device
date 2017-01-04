@@ -12,6 +12,8 @@
 
 #include "rtspdec.h"
 
+#define USE_OMX
+
 namespace srzn_video_analysis_device {
 
 static GstBus *bus;
@@ -80,8 +82,10 @@ int RtspDec::WaitForNewSampleBuffer() {
   if (cur_sample_idx == last_sample_idx) {
     // buffer = NULL;
     // return;
+    struct timeval now;
+    gettimeofday(&now, NULL);
     timespec time_out_interval;
-    time_out_interval.tv_sec = 2;
+    time_out_interval.tv_sec = now.tv_sec + 2;
     time_out_interval.tv_nsec = 0;
     pthread_mutex_lock(&sample_cond_mutex);
     int wait_ret = pthread_cond_timedwait(&sample_cond, &sample_cond_mutex,
@@ -97,8 +101,8 @@ int RtspDec::WaitForNewSampleBuffer() {
 
 static GstFlowReturn appsink_new_sample(GstAppSink *appsink,
                                         gpointer user_data) {
-  g_print("new sample thread: %lx\n", pthread_self());
-  return GST_FLOW_OK;
+  //g_print("new sample thread: %lx\n", pthread_self());
+  //g_print(".");
 
   GstSample *sample = gst_app_sink_pull_sample(GST_APP_SINK(appsink));
   GstCaps *caps = gst_sample_get_caps(sample);
@@ -114,7 +118,6 @@ static GstFlowReturn appsink_new_sample(GstAppSink *appsink,
   gst_buffer_map(buffer, &map, GST_MAP_READ);
 
   RtspDec *rtsp_dec = (RtspDec *)user_data;
-
   rtsp_dec->PushSampleBuffer(map.data, width, height, 1);
 
   gst_buffer_unmap(buffer, &map);
@@ -243,8 +246,8 @@ RtspDec::RtspDec() {
   avdec_h264 = gst_element_factory_make("avdec_h264", "myavdec_h264");
 #endif
 
-  g_object_set(G_OBJECT(appsink), "drop", true, NULL);
-  g_object_set(G_OBJECT(appsink), "max-buffers", 4, NULL);
+  //g_object_set(G_OBJECT(appsink), "drop", true, NULL);
+  //g_object_set(G_OBJECT(appsink), "max-buffers", 4, NULL);
   g_object_set(G_OBJECT(appsink), "emit-signals", true, NULL);
 
 #ifdef USE_OMX
@@ -257,6 +260,10 @@ RtspDec::RtspDec() {
 
   gst_element_link(rtspsrc, rtph264depay);
   gst_element_link(rtph264depay, h264parse);
+
+  //GstCaps *cap_264dec_to_appsink;
+  //cap_264dec_to_appsink=
+   // gst_caps_new_simple("video/x-raw", "format", G_TYPE_STRING, "RGBx", NULL);
 
 #ifdef USE_OMX
   gst_element_link(h264parse, omxh264dec);
@@ -316,8 +323,6 @@ int main(int argc, char *argv[]) {
   RtspDec rtsp_dec;
   g_print("Play %s\n", argv[1]);
   rtsp_dec.SetRtspSrcUri(argv[1]);
-  sleep(10);
-  return 0;
 
   int frames = 0;
   for (int i = 0;; ++i) {
