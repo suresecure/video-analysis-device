@@ -235,15 +235,28 @@ RtspDec::RtspDec() {
   rtph264depay = gst_element_factory_make("rtph264depay", "myrtph264depay");
   appsink = gst_element_factory_make("appsink", "myappsink");
   avdec_h264 = gst_element_factory_make("avdec_h264", "myavdec_h264");
+  h264parse = gst_element_factory_make("h264parse", "myh264parse");
+  omxh264dec = gst_element_factory_make("omxh264dec", "myomxh264dec");
 
   g_object_set(G_OBJECT(appsink), "emit-signals", true, NULL);
 
-  gst_bin_add_many(GST_BIN(pipeline), rtspsrc, rtph264depay, avdec_h264,
-                   appsink, NULL);
+  if (omxh264dec == NULL)
+    gst_bin_add_many(GST_BIN(pipeline), rtspsrc, rtph264depay, avdec_h264,
+                     h264parse, appsink, NULL);
+  else
+    gst_bin_add_many(GST_BIN(pipeline), rtspsrc, rtph264depay, omxh264dec,
+                     h264parse, appsink, NULL);
 
   gst_element_link(rtspsrc, rtph264depay);
-  gst_element_link(rtph264depay, avdec_h264);
-  gst_element_link(avdec_h264, appsink);
+  gst_element_link(rtph264depay, h264parse);
+
+  if (omxh264dec == NULL) {
+    gst_element_link(h264parse, avdec_h264);
+    gst_element_link(avdec_h264, appsink);
+  } else {
+    gst_element_link(h264parse, omxh264dec);
+    gst_element_link(omxh264dec, appsink);
+  }
 
   // add a message handler
   // bus = gst_pipeline_get_bus(GST_PIPELINE(pipeline));
@@ -297,16 +310,18 @@ int main(int argc, char *argv[]) {
   g_print("Play %s\n", argv[1]);
   rtsp_dec.SetRtspSrcUri(argv[1]);
 
+  int frames = 0;
   for (int i = 0;; ++i) {
     cv::Mat img;
     bool first_frame;
     rtsp_dec.GetNextSample(img, first_frame);
     if (img.cols > 0) {
+      ++frames;
       // cv::imshow("img", img);
       // cv::waitKey(1);
       if (first_frame)
         g_print("First Frame!\n");
-      else if (i % 100 == 0)
+      if (frames % 100 == 0)
         g_print(".");
     }
   }

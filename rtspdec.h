@@ -32,6 +32,8 @@ private:
   GstElement *rtph264depay;
   GstElement *appsink;
   GstElement *pipeline;
+  GstElement *h264parse;
+  GstElement *omxh264dec;
   GstElement *avdec_h264;
 
   unsigned int last_frame_clk;
