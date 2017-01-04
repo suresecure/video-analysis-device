@@ -3,11 +3,11 @@
 #include <gst/app/gstappsink.h>
 #include <opencv2/opencv.hpp>
 
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <sys/time.h>
 #include <pthread.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/time.h>
 #include <unistd.h>
 
 #include "rtspdec.h"
@@ -101,8 +101,8 @@ int RtspDec::WaitForNewSampleBuffer() {
 
 static GstFlowReturn appsink_new_sample(GstAppSink *appsink,
                                         gpointer user_data) {
-  //g_print("new sample thread: %lx\n", pthread_self());
-  //g_print(".");
+  // g_print("new sample thread: %lx\n", pthread_self());
+  // g_print(".");
 
   GstSample *sample = gst_app_sink_pull_sample(GST_APP_SINK(appsink));
   GstCaps *caps = gst_sample_get_caps(sample);
@@ -246,8 +246,8 @@ RtspDec::RtspDec() {
   avdec_h264 = gst_element_factory_make("avdec_h264", "myavdec_h264");
 #endif
 
-  //g_object_set(G_OBJECT(appsink), "drop", true, NULL);
-  //g_object_set(G_OBJECT(appsink), "max-buffers", 4, NULL);
+  // g_object_set(G_OBJECT(appsink), "drop", true, NULL);
+  // g_object_set(G_OBJECT(appsink), "max-buffers", 4, NULL);
   g_object_set(G_OBJECT(appsink), "emit-signals", true, NULL);
 
 #ifdef USE_OMX
@@ -261,9 +261,9 @@ RtspDec::RtspDec() {
   gst_element_link(rtspsrc, rtph264depay);
   gst_element_link(rtph264depay, h264parse);
 
-  //GstCaps *cap_264dec_to_appsink;
-  //cap_264dec_to_appsink=
-   // gst_caps_new_simple("video/x-raw", "format", G_TYPE_STRING, "RGBx", NULL);
+// GstCaps *cap_264dec_to_appsink;
+// cap_264dec_to_appsink=
+// gst_caps_new_simple("video/x-raw", "format", G_TYPE_STRING, "RGBx", NULL);
 
 #ifdef USE_OMX
   gst_element_link(h264parse, omxh264dec);
