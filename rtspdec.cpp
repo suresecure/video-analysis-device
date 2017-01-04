@@ -97,7 +97,7 @@ int RtspDec::WaitForNewSampleBuffer() {
 
 static GstFlowReturn appsink_new_sample(GstAppSink *appsink,
                                         gpointer user_data) {
-  //g_print("new sample thread: %lx\n", pthread_self());
+  // g_print("new sample thread: %lx\n", pthread_self());
   GstSample *sample = gst_app_sink_pull_sample(GST_APP_SINK(appsink));
   GstCaps *caps = gst_sample_get_caps(sample);
   GstStructure *capsStruct = gst_caps_get_structure(caps, 0);
@@ -118,7 +118,7 @@ static GstFlowReturn appsink_new_sample(GstAppSink *appsink,
   gst_buffer_unmap(buffer, &map);
   gst_sample_unref(sample);
   // sleep(5);
-  //g_print("push sample buffer over!\n");
+  // g_print("push sample buffer over!\n");
   return GST_FLOW_OK;
 }
 
@@ -262,7 +262,7 @@ RtspDec::~RtspDec() {}
 
 void RtspDec::SetRtspSrcUri(const std::string &uri) {
   g_object_set(G_OBJECT(rtspsrc), "location", uri.c_str(), NULL);
-  //gst_element_set_state(pipeline, GST_STATE_READY);
+  // gst_element_set_state(pipeline, GST_STATE_READY);
   gst_element_set_state(pipeline, GST_STATE_PLAYING);
   new_frame = true;
 }
@@ -293,7 +293,7 @@ void RtspDec::GetNextSample(cv::Mat &img, bool &first_frame) {
 using namespace srzn_video_analysis_device;
 int main(int argc, char *argv[]) {
   RtspDec rtsp_dec;
-  //rtsp_dec.SetRtspSrcUri("rtsp://localhost:8554/live");
+  // rtsp_dec.SetRtspSrcUri("rtsp://localhost:8554/live");
   g_print("Play %s\n", argv[1]);
   rtsp_dec.SetRtspSrcUri(argv[1]);
 
@@ -302,10 +302,12 @@ int main(int argc, char *argv[]) {
     bool first_frame;
     rtsp_dec.GetNextSample(img, first_frame);
     if (img.cols > 0) {
-      cv::imshow("img", img);
-      cv::waitKey(1);
+      // cv::imshow("img", img);
+      // cv::waitKey(1);
       if (first_frame)
         g_print("First Frame!\n");
+      else if (i % 100 == 0)
+        g_print(".");
     }
   }
 
