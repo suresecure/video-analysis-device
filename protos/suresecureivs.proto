@@ -1,0 +1,326 @@
+syntax = "proto3";
+
+/*option java_multiple_files = true;*/
+/*option java_package = "io.grpc.examples.helloworld";*/
+/*option java_outer_classname = "HelloWorldProto";*/
+/*option objc_class_prefix = "HLW";*/
+
+package suresecureivs;
+
+message Empty{
+}
+message GeneralReply{
+  int32 error_code = 1;
+  string message = 2;
+}
+
+// The device management service definition.
+service DeviceMgt {
+  rpc GetHealthyStatus (Empty) returns (GeneralReply){}
+  rpc GetEventServerAddress(Empty) returns (NetworkEndpoint){}
+  rpc SetEventServerAddress(NetworkEndpoint) returns (GeneralReply){}
+  /*rpc GetImageAnalysisServerAddress(Empty) returns (NetworkEndpoint){}*/
+  /*rpc SetImageAnalysisServerAddress(NetworkEndpoint) returns (GeneralReply){}*/
+  rpc GetDeviceInfo (GetDeviceInfoRequest) returns (GetDeviceInfoReply) {}
+  rpc GetNetworkConf (Empty) returns (NetworkConf){}
+  rpc SetNetworkConf (NetworkConf) returns (GeneralReply){}
+  rpc Reboot (Empty) returns (GeneralReply){}
+  rpc Restart (Empty) returns (GeneralReply){}
+}
+
+message NetworkEndpoint{
+string address = 1;
+int32 port = 2;
+}
+
+// The request message containing the user's name.
+message GetDeviceInfoRequest {
+  string filename = 1;
+}
+
+// The response message containing the greetings
+message GetDeviceInfoReply {
+  string message = 1;
+  string node_name = 2;          // device name
+  string dev_type = 3;           // device model
+  string node_os = 4;            // OS version
+  int32  major_version = 5;      // version
+  int32  minor_version = 6;
+  int32  revision = 7;
+}
+
+message NetworkConf{
+  string address = 1;
+  string netmask = 2;
+  string gateway = 3;
+  string dns = 4;
+}
+
+service SurvCenterService{
+  rpc ReportEvent (Event) returns (GeneralReply) {}
+  rpc Heartbeat(HeartbeatRequest) returns (GeneralReply) {}
+}
+
+message HeartbeatRequest{
+  string device_address = 1;
+  string device_ident = 2;
+}
+
+message Target{
+  enum Type{
+    PERSON                =0;
+    OBJECT                =1;
+  }
+  enum Status{
+    NORMAL                =0;
+    ABNORMAL              =1;
+  }
+  int32 x = 1;
+  int32 y = 2;
+  int32 w = 3;
+  int32 h = 4;
+  Type type = 5;
+  Status status = 6;
+}
+
+enum SettingAreaType{
+  meter_area  = 0;
+  guard_area  = 1;
+  cross_line  = 2;
+  atmdoor_area  = 3;
+  object_protection_area = 4;
+}
+message SettingArea{
+  enum Status{
+    NORMAL = 0;
+    ABNORMAL = 1;
+  }
+  SettingAreaType type = 1;
+  repeated int32 x=2;
+  repeated int32 y=3;
+  Status status = 4;
+  string comment = 5;
+}
+message AnnotatedImage{
+  bytes img = 1;
+  string comment = 2;
+  repeated Target targets = 3;
+  repeated SettingArea setting_areas = 4;
+}
+
+// The request message containing the user's name.
+message Event {
+  string guid = 1;
+  int32 type = 2;
+  int64 seconds = 3;
+  string description = 4;
+  string hostaddress = 5;
+  int32 channel = 6;
+  string video_filename = 7;
+  string frontend_version = 8;
+
+  repeated AnnotatedImage anno_imgs = 9;
+  int32 person_num = 10;
+  int32 meter_area_num = 11;
+  string device_ident = 12;
+}
+
+message EventForServer{
+  Event event_content = 1;
+  //reserved for server
+  enum Status{
+    normal = 0;
+    file_saved = 1;
+    db_saved = 2;
+    queue_saved = 3;
+    client_received = 4;
+    client_processing = 5;
+    client_suspend = 6;
+    complete = 100;
+  }
+  Status status = 2;
+  int64 recv_dtime = 3;
+  int64 handle_dtime = 4;
+  string remark = 5;
+  int32 id=6; 
+  string event_file=7;
+  bool verif_result = 8;
+}
+
+// The analytic service definition.
+service Analytics {
+  /*rpc GetModulePeroids(SetTarget) returns (PeroidInfoList) {}*/
+  /*rpc GetModuleCurrentWorkPeriod(SetTarget) returns (PeriodIdx) {}*/
+
+  rpc GetNodeDesc(Empty) returns (NodeDesc) {}
+
+  rpc Reinit (ReinitRequest) returns (GeneralReply) {}
+  rpc SetModuleStatus (SetModuleStatusRequest) returns (GeneralReply) {}
+  rpc SetModulePeriodDuration (SetModulePeriodDurationRequest) returns (GeneralReply) {}
+  rpc ForceModuleCurrentWorkPeriod (SetTarget) returns (GeneralReply) {}
+  rpc RestoreModuleCurrentWorkPeriod (SetTarget) returns (GeneralReply) {}
+  
+  rpc SetParam (SetParamRequest) returns (GeneralReply){}
+}
+
+message SetModulePeriodDurationRequest{
+  SetTarget set_target = 1;
+  int32 idx = 2;
+  int64 start_time = 3;
+  int64 end_time = 4;
+  bool enabled = 5;
+}
+
+message SimpleSettingValue{
+  int32 int_val = 1;
+  double double_val = 2;
+  string string_val = 3;
+}
+
+message PolySettingValue{
+  repeated int32 x = 2;
+  repeated int32 y = 3;
+  repeated SimpleSettingValue params = 4;
+}
+
+message SettingItemValue{
+  SimpleSettingValue simple_val = 2;
+  PolySettingValue poly_val = 3;
+}
+
+message SettingItemValueWithName{
+  string param_name = 1;
+  SettingItemValue value = 2;
+}
+
+enum SettingType{
+  Integer = 0;
+  Double = 1;
+  Select = 2;
+  String = 3;
+  Poly = 4;
+};
+
+message SettingItemDesc{
+  string name = 1;
+  string comment = 2;
+  SettingType setting_type = 3;
+  double upper = 4;
+  double lower = 5;
+  repeated string choice = 6;
+  SettingItemValue val = 7;
+}
+
+message PeriodIdx{
+  int32 idx = 1;
+}
+
+//对应单个时间段的参数集合
+message PeriodParams{
+  int64 start_time = 1;
+  int64 end_time = 2;
+  bool enabled = 3;
+  SettingItemDesc default_params = 4;
+  repeated SettingItemDesc extra_params = 5;
+}
+
+message ModuleDesc{
+  string name = 1;
+  int32 index = 2;
+  bool enabled = 3;
+  
+  int32 active_period_idx = 4;
+  
+  repeated PeriodParams period_params = 5;
+}
+
+message PortDesc{
+  enum Type{
+    INV  =0;
+    DEP  =1;
+    RGB  =2;
+    NODE =3; 
+  }
+  string name = 1;
+  int32 num = 2;
+  Type type = 3;
+  repeated ModuleDesc modules = 4;
+  repeated SettingItemDesc params = 5;
+}
+
+message NodeDesc{
+  repeated SettingItemDesc params = 1;
+  repeated PortDesc ports = 2;
+}
+
+/*message GetNodeDescRequest{*/
+  /*int32 param_set_idx = 1;*/
+/*}*/
+message SetModuleStatusRequest{
+  SetTarget set_target = 1;
+  /*int32 param_set_idx = 2;*/
+  bool enabled = 2;
+}
+
+enum SCOPE{
+  SCOPE_NODE        =0;
+  SCOPE_PORT        =1;
+  SCOPE_MODULE      =2;
+}
+
+message SetTarget{
+  SCOPE scope = 1;
+  int32 port = 2;
+  int32 module = 3;
+  int32 module_period_idx = 4;
+}
+
+message ReinitRequest{
+  SetTarget target = 1;
+  int32 frames = 2;
+}
+
+message SetParamRequest{
+  SetTarget target = 1;
+  repeated SettingItemValueWithName settings = 2;
+  int32 period_idx = 3;
+}
+
+//the image analysis service
+/*service ImageAnalysis {*/
+/*rpc ImageClassify (ImageRegion) returns (ImageClassifyReply) {}*/
+/*rpc ObjectDetection (ImageRegion) returns (ObjectDetectionReply){}*/
+/*}*/
+
+/*message ImageRegion{*/
+/*bytes img = 1;*/
+/*int32 x = 2;*/
+/*int32 y = 3;*/
+/*int32 w = 4;*/
+/*int32 h = 5;*/
+/*}*/
+
+/*message ImageClassifyReply{*/
+/*GeneralReply general_reply = 1;*/
+/*enum Type{*/
+/*BACK_GROUND = 0;*/
+/*PERSON = 1;*/
+/*}*/
+/*Type type = 2;*/
+/*}*/
+
+/*message ObjectTarget{*/
+/*int32 x = 1;*/
+/*int32 y = 2;*/
+/*int32 w = 3;*/
+/*int32 h = 4;*/
+/*enum Type{*/
+/*PERSON = 0;*/
+/*}*/
+/*Type type = 5;*/
+/*}*/
+
+/*message ObjectDetectionReply{*/
+/*GeneralReply general_reply = 1;*/
+/*repeated ObjectTarget targets = 3;*/
+/*}*/
