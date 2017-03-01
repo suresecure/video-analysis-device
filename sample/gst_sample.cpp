@@ -1,6 +1,4 @@
 #include <gst/gst.h>
-//#include <gst/app/gstappsrc.h>
-//#include <gst/app/gstappsink.h>
 #include <opencv2/opencv.hpp>
 
 #include <stdio.h>
@@ -11,29 +9,28 @@
 #include <unistd.h>
 
 // static GstElement *appsrc;
+static GstElement *videotestsrc;
 static GstElement *filesrc;
-static GstElement *rtspsrc, *rtph264depay;
-// static GstElement *appsink;
-// static GstElement *pipeline, *vidconv, *x264enc, *qtmux;
-static GstElement *pipeline, *qtdemux, *h264parse, *h264dec;
+//static GstElement *rtspsrc, *rtph264depay;
+static GstElement *pipeline, *qtdemux, *h264parse;
 static GstElement *avdec_h264;
 static GstElement *imagesink;
 static GstBus *bus;
 
-static unsigned int last_frame_clk;
+//static unsigned int last_frame_clk;
 
-unsigned int get_cur_second() {
-  struct timeval tim;
-  gettimeofday(&tim, NULL);
-  return tim.tv_sec;
-}
+//unsigned int get_cur_second() {
+  //struct timeval tim;
+  //gettimeofday(&tim, NULL);
+  //return tim.tv_sec;
+//}
 
-unsigned int MyGetTickCount() {
-  struct timeval tim;
-  gettimeofday(&tim, NULL);
-  unsigned int t = ((tim.tv_sec * 1000) + (tim.tv_usec / 1000)) & 0xffffffff;
-  return t;
-}
+//unsigned int MyGetTickCount() {
+  //struct timeval tim;
+  //gettimeofday(&tim, NULL);
+  //unsigned int t = ((tim.tv_sec * 1000) + (tim.tv_usec / 1000)) & 0xffffffff;
+  //return t;
+//}
 
 // static void cb_new_pad(GstElement *element, GstPad *pad, gpointer data) {
 // gchar *name;
@@ -47,12 +44,12 @@ unsigned int MyGetTickCount() {
 //}
 
 static void new_pad_call_back(GstElement *element, GstPad *pad, gpointer data) {
-  g_print("rtspsrc new pad callback thread: %lx\n", pthread_self());
+  g_print("qtdemux new pad callback thread: %lx\n", pthread_self());
   gchar *name;
   name = gst_element_get_name(element);
   g_print("%s\n", name);
   g_free(name);
-  gst_element_link(rtspsrc, rtph264depay);
+  gst_element_link(qtdemux, avdec_h264);
 }
 
 // Bus messages processing, similar to all gstreamer examples
@@ -121,14 +118,14 @@ void *bus_msg_thread(void *pThreadParam) {
       bus_call(bus, msg, NULL);
       gst_message_unref(msg);
     }
-    unsigned int cur_clk = get_cur_second();
-    if (cur_clk > last_frame_clk + 10) {
-      g_print("too long not to get new frame, restart the pipeline!\n");
-      last_frame_clk = cur_clk;
-      gst_element_set_state(pipeline, GST_STATE_READY);
-      gst_element_set_state(pipeline, GST_STATE_PLAYING);
-    }
-    sleep(1);
+    //unsigned int cur_clk = get_cur_second();
+    //if (cur_clk > last_frame_clk + 10) {
+      //g_print("too long not to get new frame, restart the pipeline!\n");
+      //last_frame_clk = cur_clk;
+      //gst_element_set_state(pipeline, GST_STATE_READY);
+      //gst_element_set_state(pipeline, GST_STATE_PLAYING);
+    //}
+    //sleep(1);
   }
   return NULL;
 }
@@ -162,6 +159,7 @@ int main(int argc, char *argv[]) {
 
   pipeline = gst_pipeline_new("mypipeline");
 
+  videotestsrc = gst_element_factory_make("videotestsrc", "myvideotestsrc");
   filesrc = gst_element_factory_make("filesrc", "myfilesrc");
   // rtspsrc = gst_element_factory_make("rtspsrc", "myrtspsrc");
   // rtph264depay = gst_element_factory_make("rtph264depay", "myrtph264depay");
@@ -176,50 +174,58 @@ int main(int argc, char *argv[]) {
   // NULL);
   // g_object_set(G_OBJECT(rtspsrc), "udp-reconnect", true, NULL);
 
-  gst_bin_add_many(GST_BIN(pipeline), rtspsrc, rtph264depay, avdec_h264,
-                   appsink, NULL);
+  //gst_bin_add_many(GST_BIN(pipeline), rtspsrc, rtph264depay, avdec_h264,
+                   //appsink, NULL);
+  gst_bin_add_many(GST_BIN(pipeline), filesrc, qtdemux, rtph264depay, avdec_h264,
+                   imagesink, NULL);
+  gst_bin_add_many(GST_BIN(pipeline), videotestsrc, imagesink, NULL);
 
   // elements must be linked after been added
   gst_element_link(filesrc, qtdemux);
+  //gst_element_link(qtdemux, avdec_h264);
   //gst_element_link(rtspsrc, rtph264depay);
   //gst_element_link(rtph264depay, avdec_h264);
-  gst_element_link(avdec_h264, appsink);
+  gst_element_link(avdec_h264, xvimagesink);
+
+  gst_element_link(videotestsrc, xvimagesink);
 
   // add a message handler
   bus = gst_pipeline_get_bus(GST_PIPELINE(pipeline));
 
-  g_signal_connect(rtspsrc, "pad-added", G_CALLBACK(new_pad_call_back), NULL);
+  //g_signal_connect(rtspsrc, "pad-added", G_CALLBACK(new_pad_call_back), NULL);
+  g_signal_connect(qtdemux, "pad-added", G_CALLBACK(new_pad_call_back), NULL);
 
   // qtdemux and decoder are dynamically linked by signal callback
   // g_signal_connect(qtdemux, "pad-added", G_CALLBACK(cb_new_pad), NULL);
-  last_frame_clk = get_cur_second();
+  //last_frame_clk = get_cur_second();
   // start_bus_msg_thread();
 
   fprintf(stderr, "Setting g_main_loop_run to GST_STATE_PLAYING\n");
   // Start pipeline so it could process incoming data
   gst_element_set_state(pipeline, GST_STATE_PLAYING);
 
-  int ticks = MyGetTickCount();
-  for (int i = 0;; ++i) {
-    int wait_ret = wait_for_new_sample_buffer();
-    if (wait_ret == 0) {
-      last_frame_clk = get_cur_second();
-      unsigned char *buffer;
-      int width, height, depth;
-      pop_sample_buffer(buffer, width, height, depth);
-      cv::Mat img(height, width, CV_8UC1, buffer);
-      cv::imshow("yes", img);
-      cv::waitKey(60);
-    } else {
-      unsigned int cur_clk = get_cur_second();
-      if (cur_clk - last_frame_clk > 10) {
-        g_print("too long to not get new buffer, restart pipeline!\n");
-        last_frame_clk = cur_clk;
-        gst_element_set_state(pipeline, GST_STATE_READY);
-        gst_element_set_state(pipeline, GST_STATE_PLAYING);
-      }
-    }
-  }
+  bus_msg_thread(NULL);
+  //int ticks = MyGetTickCount();
+  //for (int i = 0;; ++i) {
+    //int wait_ret = wait_for_new_sample_buffer();
+    //if (wait_ret == 0) {
+      //last_frame_clk = get_cur_second();
+      //unsigned char *buffer;
+      //int width, height, depth;
+      //pop_sample_buffer(buffer, width, height, depth);
+      //cv::Mat img(height, width, CV_8UC1, buffer);
+      //cv::imshow("yes", img);
+      //cv::waitKey(60);
+    //} else {
+      //unsigned int cur_clk = get_cur_second();
+      //if (cur_clk - last_frame_clk > 10) {
+        //g_print("too long to not get new buffer, restart pipeline!\n");
+        //last_frame_clk = cur_clk;
+        //gst_element_set_state(pipeline, GST_STATE_READY);
+        //gst_element_set_state(pipeline, GST_STATE_PLAYING);
+      //}
+    //}
+  //}
   // bus_msg_thread(NULL);
 
   // for (int i = 0;; ++i) {
@@ -255,7 +261,7 @@ int main(int argc, char *argv[]) {
   //}
 
   // Get total conversion time
-  int ms = MyGetTickCount() - ticks;
+  //int ms = MyGetTickCount() - ticks;
 
   // Stop pipeline to be released
   // gst_element_set_state(pipeline, GST_STATE_NULL);
