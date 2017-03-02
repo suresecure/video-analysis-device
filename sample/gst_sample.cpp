@@ -14,7 +14,8 @@ static GstElement *filesrc;
 //static GstElement *rtspsrc, *rtph264depay;
 static GstElement *pipeline, *qtdemux, *h264parse;
 static GstElement *avdec_h264;
-static GstElement *imagesink;
+static GstElement *videoconvert;
+static GstElement *xvimagesink;
 static GstBus *bus;
 
 //static unsigned int last_frame_clk;
@@ -166,9 +167,10 @@ int main(int argc, char *argv[]) {
   // appsink = gst_element_factory_make("appsink", "myappsink");
   qtdemux = gst_element_factory_make("qtdemux", "myqtdemux");
   avdec_h264 = gst_element_factory_make("avdec_h264", "myavdec_h264");
-  imagesink = gst_element_factory_make("xvimagesink", "myxvimagesink");
+  videoconvert = gst_element_factory_make("videoconvert", "myvideoconvert");
+  xvimagesink = gst_element_factory_make("ximagesink", "myxvimagesink");
 
-  g_object_set(G_OBJECT(filesrc), "location", "/home/mythxcq/test_cif.mp4",
+  g_object_set(G_OBJECT(filesrc), "location", "../scripts/test.mp4",
                NULL);
   // g_object_set(G_OBJECT(rtspsrc), "location", "rtsp://localhost:8554/live",
   // NULL);
@@ -176,18 +178,19 @@ int main(int argc, char *argv[]) {
 
   //gst_bin_add_many(GST_BIN(pipeline), rtspsrc, rtph264depay, avdec_h264,
                    //appsink, NULL);
-  gst_bin_add_many(GST_BIN(pipeline), filesrc, qtdemux, rtph264depay, avdec_h264,
-                   imagesink, NULL);
-  gst_bin_add_many(GST_BIN(pipeline), videotestsrc, imagesink, NULL);
+  gst_bin_add_many(GST_BIN(pipeline), filesrc, qtdemux, avdec_h264, videoconvert,
+                   xvimagesink, NULL);
+  //gst_bin_add_many(GST_BIN(pipeline), videotestsrc, imagesink, NULL);
 
   // elements must be linked after been added
   gst_element_link(filesrc, qtdemux);
   //gst_element_link(qtdemux, avdec_h264);
   //gst_element_link(rtspsrc, rtph264depay);
   //gst_element_link(rtph264depay, avdec_h264);
-  gst_element_link(avdec_h264, xvimagesink);
+  gst_element_link(avdec_h264, videoconvert);
+  gst_element_link(videoconvert, xvimagesink);
 
-  gst_element_link(videotestsrc, xvimagesink);
+  //gst_element_link(videotestsrc, xvimagesink);
 
   // add a message handler
   bus = gst_pipeline_get_bus(GST_PIPELINE(pipeline));
